@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Интерактивная схема: Память</title>
+    <style>
+        :root {
+            --primary-blue: #2a3c8c;
+            --line-color: #2a3c8c;
+            --bg-color: #f9f9f9;
+            --hover-bg: #eef2ff;
+            --success-bg: #e6fffa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+            user-select: none;
+            overflow-x: hidden;
+        }
+
+        h1 {
+            color: var(--primary-blue);
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        /* --- Контейнер схемы --- */
+        .scheme-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 1000px;
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        /* Главный закрепленный блок */
+        .main-title {
+            font-size: 20px;
+            padding: 15px 40px;
+            border: 2px solid var(--primary-blue);
+            color: var(--primary-blue);
+            background: white;
+            font-weight: bold;
+            border-radius: 4px;
+            z-index: 10;
+            position: relative;
+        }
+
+        /* SVG для линий */
+        .lines-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Сетка для элементов */
+        .grid-layout {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 60px;
+            padding: 0 20px;
+            box-sizing: border-box;
+            position: relative;
+            z-index: 2;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Стили для блоков-заголовков */
+        .header-box {
+            border: 2px solid var(--primary-blue);
+            color: var(--primary-blue);
+            padding: 10px 15px;
+            border-radius: 4px;
+            background: white;
+            text-align: center;
+            font-size: 15px;
+            min-width: 180px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            z-index: 3;
+            position: relative;
+        }
+
+        /* Контейнеры для дочерних элементов */
+        .children-row {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
+            position: relative;
+        }
+
+        /* Внутренняя структура для внешней памяти */
+        .external-structure {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
+        .storage-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+        }
+
+        /* --- Пустые слоты (Drop Zones) --- */
+        .drop-zone {
+            border: 2px dashed #aab;
+            background-color: #f8fbff;
+            color: transparent;
+            min-height: 45px;
+            min-width: 120px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 14px;
+            position: relative;
+            transition: all 0.2s;
+            box-sizing: border-box;
+            z-index: 3;
+        }
+
+        .drop-zone.drag-over {
+            background-color: #d0dfff;
+            border-color: var(--primary-blue);
+            transform: scale(1.05);
+        }
+
+        .drop-zone.filled {
+            border: 2px solid var(--primary-blue);
+            background-color: white;
+            color: var(--primary-blue);
+            cursor: default;
+            font-weight: 500;
+        }
+        
+        /* Специфичные ширины */
+        .w-100 { width: 100px; }
+        .w-110 { width: 110px; }
+        .w-120 { width: 120px; }
+        .w-140 { width: 140px; }
+
+        /* --- Панель с деталями --- */
+        .parts-panel {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            padding: 20px;
+            background: #eef2f5;
+            border-radius: 12px;
+            border: 1px solid #ddd;
+            max-width: 800px;
+            min-height: 80px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .draggable-item {
+            background-color: white;
+            border: 2px solid var(--primary-blue);
+            color: var(--primary-blue);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: grab;
+            font-weight: 500;
+            font-size: 14px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.1s;
+            user-select: none;
+        }
+
+        .draggable-item:active {
+            cursor: grabbing;
+            transform: scale(0.95);
+        }
+
+        .draggable-item.dragging {
+            opacity: 0.5;
+        }
+
+        /* Сообщение об успехе */
+        #message {
+            margin-top: 15px;
+            font-size: 20px;
+            color: #28a745;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.5s;
+            height: 30px;
+            text-shadow: 0 0 10px rgba(40, 167, 69, 0.3);
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Схема: Память</h1>
+
+    <div class="scheme-container">
+        <!-- Закрепленный главный блок -->
+        <div class="main-title" id="main-title">Память</div>
+
+        <!-- SVG линии -->
+        <svg class="lines-svg" id="linesSvg"></svg>
+
+        <div class="grid-layout">
+            
+            <!-- ЛЕВАЯ ЧАСТЬ: Внутренняя память -->
+            <div class="column" id="col-internal">
+                <div class="header-box" id="head-internal">Внутренняя память<br>человека</div>
+                
+                <div class="children-row" style="flex-wrap: wrap; max-width: 300px; justify-content: space-around;">
+                    <div class="drop-zone w-100" data-group="internal" data-answer="Правила" id="slot-rules"></div>
+                    <div class="drop-zone w-120" data-group="internal" data-answer="Формулы" id="slot-formulas" style="margin-top: 15px;"></div>
+                    <div class="drop-zone w-100" data-group="internal" data-answer="Адреса" id="slot-addresses"></div>
+                </div>
+            </div>
+
+            <!-- ПРАВАЯ ЧАСТЬ: Внешняя память -->
+            <div class="column" id="col-external">
+                <div class="header-box" id="head-external">Внешняя память<br>(на внешних носителях)</div>
+                
+                <div class="external-structure">
+                    <!-- Слот для Справочников -->
+                    <div class="drop-zone w-110" data-group="external" data-answer="Справочники" id="slot-refs"></div>
+                    
+                    <!-- Блок носителей -->
+                    <div class="storage-col" id="col-storage">
+                        <!-- Теперь это пустой слот для заголовка "Электронные носители" -->
+                        <div class="drop-zone" id="slot-storage-head" data-group="storage-head" data-answer="Электронные носители" style="min-width: 140px; font-size: 14px; margin-bottom: 10px; min-height: 45px;"></div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 10px; align-items: center;" id="storage-items-container">
+                            <!-- Слоты для дисков, они станут активны только после установки заголовка -->
+                            <div class="drop-zone w-140" data-group="storage-item" data-answer="Магнитные диски" id="slot-mag"></div>
+                            <div class="drop-zone w-140" data-group="storage-item" data-answer="Лазерные диски" id="slot-laser"></div>
+                            <div class="drop-zone w-140" data-group="storage-item" data-answer="Flash - карты" id="slot-flash"></div>
+                        </div>
+                    </div>
+
+                    <!-- Слот для Записных книжек -->
+                    <div class="drop-zone w-110" data-group="external" data-answer="Записные книжки" id="slot-books"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="message">Отлично! Схема собрана верно.</div>
+
+    <h3 style="color: var(--primary-blue); margin-top: 20px;">Перетащите элементы на свои места:</h3>
+    <div class="parts-panel" id="parts-panel">
+        <!-- Элементы добавляются JS -->
+    </div>
+
+    <script>
+        // --- Данные ---
+        const itemsData = [
+            { text: "Правила", group: "internal" },
+            { text: "Формулы", group: "internal" },
+            { text: "Адреса", group: "internal" },
+            { text: "Справочники", group: "external" },
+            { text: "Записные книжки", group: "external" },
+            { text: "Электронные носители", group: "storage-head" }, // Новый перетаскиваемый элемент
+            { text: "Магнитные диски", group: "storage-item" },
+            { text: "Лазерные диски", group: "storage-item" },
+            { text: "Flash - карты", group: "storage-item" }
+        ];
+
+        const panel = document.getElementById('parts-panel');
+        const dropZones = document.querySelectorAll('.drop-zone');
+        const message = document.getElementById('message');
+        const svg = document.getElementById('linesSvg');
+        const slotStorageHead = document.getElementById('slot-storage-head');
+        let filledCount = 0;
+
+        // --- Логика перетаскивания ---
+        
+        function shuffle(array) {
+            return array.sort(() => Math.random() - 0.5);
+        }
+
+        shuffle([...itemsData]).forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'draggable-item';
+            div.draggable = true;
+            div.innerText = item.text;
+            div.dataset.text = item.text;
+            div.dataset.group = item.group;
+            
+            div.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', item.text);
+                e.dataTransfer.setData('group', item.group);
+                div.classList.add('dragging');
+            });
+
+            div.addEventListener('dragend', () => {
+                div.classList.remove('dragging');
+            });
+
+            panel.appendChild(div);
+        });
+
+        dropZones.forEach(zone => {
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                if (!zone.classList.contains('filled')) zone.classList.add('drag-over');
+            });
+
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('drag-over');
+            });
+
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.classList.remove('drag-over');
+
+                const draggedText = e.dataTransfer.getData('text/plain');
+                const draggedGroup = e.dataTransfer.getData('group');
+                const targetGroup = zone.dataset.group;
+
+                // Проверяем совпадение группы
+                if (draggedGroup === targetGroup) {
+                    
+                    // Блокировка дисков, пока нет "Электронных носителей"
+                    if (targetGroup === 'storage-item' && !slotStorageHead.classList.contains('filled')) {
+                        zone.style.borderColor = 'red';
+                        setTimeout(() => zone.style.borderColor = '', 500);
+                        return;
+                    }
+
+                    zone.classList.add('filled');
+                    zone.innerText = draggedText;
+                    zone.style.backgroundColor = 'var(--success-bg)';
+                    
+                    const draggable = Array.from(panel.children).find(child => child.dataset.text === draggedText && !child.classList.contains('used'));
+                    if (draggable) draggable.remove();
+
+                    filledCount++;
+                    if (filledCount === dropZones.length) {
+                        message.style.opacity = '1';
+                    }
+                    drawLines(); // Перерисовываем линии после установки блока
+                } else {
+                    zone.style.borderColor = 'red';
+                    setTimeout(() => zone.style.borderColor = '', 500);
+                }
+            });
+        });
+
+        // --- Логика отрисовки линий SVG ---
+
+        function drawLines() {
+            svg.innerHTML = '';
+            
+            const containerRect = document.querySelector('.scheme-container').getBoundingClientRect();
+            
+            const getCoords = (el) => {
+                const rect = el.getBoundingClientRect();
+                return {
+                    x: rect.left - containerRect.left + rect.width / 2,
+                    y: rect.top - containerRect.top,
+                    bottomY: rect.bottom - containerRect.top,
+                    leftX: rect.left - containerRect.left,
+                    rightX: rect.right - containerRect.left,
+                    width: rect.width,
+                    height: rect.height
+                };
+            };
+
+            function createLine(x1, y1, x2, y2) {
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', x1);
+                line.setAttribute('y1', y1);
+                line.setAttribute('x2', x2);
+                line.setAttribute('y2', y2);
+                line.setAttribute('stroke', 'var(--line-color)');
+                line.setAttribute('stroke-width', '2');
+                svg.appendChild(line);
+            }
+            
+            function drawTree(parent, children) {
+                const p = getCoords(parent);
+                const startY = p.bottomY;
+                const busY = startY + 15;
+                
+                createLine(p.x, startY, p.x, busY);
+
+                const childCoords = children.map(c => getCoords(c));
+                
+                if (childCoords.length > 0) {
+                    const minX = Math.min(...childCoords.map(c => c.x));
+                    const maxX = Math.max(...childCoords.map(c => c.x));
+
+                    if (maxX - minX > 10) {
+                        createLine(minX, busY, maxX, busY);
+                    }
+
+                    childCoords.forEach(c => {
+                        createLine(c.x, busY, c.x, c.y);
+                    });
+                }
+            }
+
+            // --- Основная логика ---
+            const main = document.getElementById('main-title');
+            const headInternal = document.getElementById('head-internal');
+            const headExternal = document.getElementById('head-external');
+
+            const m = getCoords(main);
+            const hInt = getCoords(headInternal);
+            const hExt = getCoords(headExternal);
+
+            // 1. Ветвление от Памяти
+            const bus1Y = m.bottomY + 30;
+            createLine(m.x, m.bottomY, m.x, bus1Y);
+            createLine(hInt.x, bus1Y, hExt.x, bus1Y);
+            createLine(hInt.x, bus1Y, hInt.x, hInt.y);
+            createLine(hExt.x, bus1Y, hExt.x, hExt.y);
+
+            // 2. Ветвление от Внутренней памяти
+            const internalSlots = [
+                document.getElementById('slot-rules'),
+                document.getElementById('slot-formulas'),
+                document.getElementById('slot-addresses')
+            ];
+            drawTree(headInternal, internalSlots);
+
+            // 3. Ветвление от Внешней памяти
+            const refs = document.getElementById('slot-refs');
+            const books = document.getElementById('slot-books');
+            
+            // Используем сам слот "Электронных носителей" для координат
+            const s = getCoords(slotStorageHead); 
+            const r = getCoords(refs);
+            const b = getCoords(books);
+            const he = getCoords(headExternal);
+
+            // Линия выше (как вы просили)
+            const bus2Y = he.bottomY + 10; 
+            
+            createLine(he.x, he.bottomY, he.x, bus2Y);
+            createLine(r.x, bus2Y, b.x, bus2Y);
+            
+            createLine(r.x, bus2Y, r.x, r.y);
+            createLine(s.x, bus2Y, s.x, s.y); // Линия к слоту заголовка
+            createLine(b.x, bus2Y, b.x, b.y);
+
+            // 4. Ветвление от Электронных носителей к дискам
+            // Рисуем линии только если заголовок установлен
+            if (slotStorageHead.classList.contains('filled')) {
+                const storageSlots = [
+                    document.getElementById('slot-mag'),
+                    document.getElementById('slot-laser'),
+                    document.getElementById('slot-flash')
+                ];
+                drawTree(slotStorageHead, storageSlots);
+            }
+        }
+
+        window.onload = () => {
+            setTimeout(drawLines, 100);
+        };
+
+        window.addEventListener('resize', () => {
+             setTimeout(drawLines, 100);
+        });
+
+    </script>
+</body>
+</html>
